@@ -11,8 +11,8 @@ ClearAll["`*"];
 (***********************************************************************)
 (* :Documentation: *)
 (***********************************************************************)
-mutagenesisPrimerPair::usage =
-    "mutagenesisPrimerPair[\"cds\", res, codon] gives PCR primers for\
+makePrimerPair::usage =
+    "makePrimerPair[\"cds\", res, codon] gives PCR primers for\
  mutagenesis of a residue using a specified codon.";
 
 (***********************************************************************)
@@ -242,9 +242,9 @@ dnaMutateCDS[
 (**** Primer construction ****)
 
 (* Construct primers for mutagenesis *)
-SyntaxInformation[mutagenesisPrimerPair] =
+SyntaxInformation[makePrimerPair] =
     {"ArgumentsPattern" -> {_, _, _, _., _.}};
-mutagenesisPrimerPair[
+makePrimerPair[
   cds_String, (* Coding sequence *)
   res_Integer, (* Residue number to be mutated *)
   codon_String, (* Codon for substitution *)

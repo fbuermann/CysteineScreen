@@ -51,7 +51,7 @@ Let’s define a function that takes a residue range and a starting heptad posit
 
 
 ```mathematica
-heptadTable[start_, stop_, heptad_]:=
+heptadTable[start_, stop_, heptad_] :=
   With[
     {
       residues = Range[start, stop],
@@ -73,14 +73,14 @@ We use this function and knowledge about the coiled-coil register to assign hept
 
 ```mathematica
 heptadPositions = 
-  Join@@{
+  Join[
     heptadTable[174, 209, "a"],
     heptadTable[227, 381, "a"],
     heptadTable[395, 493, "d"],
     heptadTable[679, 777, "a"],
     heptadTable[794, 948, "d"],
     heptadTable[990, 1025, "d"]
-  };
+  ];
 ```
 
 Now we use pattern matching to select residues that are not at positions **a** or **d**:
@@ -94,9 +94,9 @@ targets =
 
 ## Automated design of the variable primers
 
-We make use of the **mutagenesisPrimerPair** function from the **CysteineScreen** package to design the variable forward and reverse primers. The function takes the sequence template, the target residue and a substitution codon (“TGC” for cysteine in our case). It returns the parts of the forward and reverse primers that contain the homology regions plus a 5’ extension which introduces the mutation. The function does not add *Bsa*I restriction sites, so we need to take care of this.
+We make use of the **makePrimerPair** function from the **CysteineScreen** package to design the variable forward and reverse primers. The function takes the sequence template, the target residue and a substitution codon (“TGC” for cysteine in our case). It returns the parts of the forward and reverse primers that contain the homology regions plus a 5’ extension which introduces the mutation. The function does not add *Bsa*I restriction sites, so we need to take care of this.
 
-The **mutagenesisPrimerPair** function adheres to the following rules:
+The **makePrimerPair** function adheres to the following rules:
 
    + If required, use an alternative codon upstream of the mutation to give a GTGC or TTGC overhang upon *Bsa*I cleavage.
 
@@ -123,7 +123,7 @@ Now we construct primers for the target residues:
 
 
 ```mathematica
-primers = mutagenesisPrimerPair[smc, #, "TGC"]& /@ targets;
+primers = makePrimerPair[smc, #, "TGC"]& /@ targets;
 ```
 
 The primers are still missing the *Bsa*I recognition site. Let’s fix that:
@@ -161,8 +161,6 @@ Export[
     , "Rules"
 ]
 ```
-
-[//]: # (No rules defined for Output)
 
 Open the file and have a look:
 
