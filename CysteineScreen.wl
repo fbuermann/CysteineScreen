@@ -140,7 +140,7 @@ translationRules =
       "GGU" -> "G"
     };
 
-(* Transate a coding sequence. *)
+(* Translate a coding sequence. *)
 dnaTranslateCDS[seq_String] :=
     StringJoin[
       StringJoin /@
@@ -232,29 +232,29 @@ dnaMeltingTemperature[
 
 (* Mutate a codon corresponding to an amino acid position *)
 dnaMutateCDS[
-  seq_String, (* The CDS *)
+  cds_String, (* The CDS *)
   res_Integer, (* Amino acid position to be mutated *)
   codon_String (* Codon for the substitution *)
 ] :=
-    StringReplacePart[seq, codon, {res * 3 - 2, res * 3}];
+    StringReplacePart[cds, codon, {res * 3 - 2, res * 3}];
 
 (***********************************************************************)
 (**** Primer construction ****)
 
-(* Construct primers for cysteine substitution *)
+(* Construct primers for mutagenesis *)
 SyntaxInformation[mutagenesisPrimerPair] =
     {"ArgumentsPattern" -> {_, _, _, _., _.}};
 mutagenesisPrimerPair[
   cds_String, (* Coding sequence *)
-  res_Integer, (* Residue number to be mutated to cysteine *)
+  res_Integer, (* Residue number to be mutated *)
   codon_String, (* Codon for substitution *)
   maxTrim_Integer : 3, (* Homology optimization parameter *)
   maxExtend_Integer : 6 (* Homology optimization parameter *)
 ] :=
     Module[
       {
-        precedingCodon, (* Codon in front of the cysteine mutation *)
-        preSubstitutionFlag, (* Flag for mutated preceding codon *)
+        precedingCodon, (* Codon in front of the mutation *)
+        precedingSubstitutionFlag, (* Flag for preceding codon *)
         mutatedSeq,
         fwdHomology,
         fwdExtension,
@@ -271,25 +271,25 @@ mutagenesisPrimerPair[
               {"G", "T"}
             ],
           (* Use sequence as is *)
-            preSubstitutionFlag = False;
+            precedingSubstitutionFlag = False;
             ToLowerCase@cds
             ,
           (* Or make base in front of the mutation a G or T *)
-            preSubstitutionFlag = True;
+            precedingSubstitutionFlag = True;
             dnaMutateCDS[
               ToLowerCase@cds,
               res - 1,
               dnaTranslateCDS@precedingCodon /. precedingCodons
             ]
           ]
-          (* Do Cys substitution *)
+          (* Do substitution *)
               // dnaMutateCDS[#, res, ToUpperCase@codon]&;
       fwdHomology =
           StringTake[mutatedSeq, {1, 21} + res * 3];
 
       revHomology =
           If[
-            preSubstitutionFlag,
+            precedingSubstitutionFlag,
             dnaReverse@StringTake[mutatedSeq, {-26, -6} + res * 3],
             dnaReverse@StringTake[mutatedSeq, {-23, -3} + res * 3]
           ];
@@ -299,7 +299,7 @@ mutagenesisPrimerPair[
 
       revExtension =
           If[
-            preSubstitutionFlag,
+            precedingSubstitutionFlag,
             dnaReverse@StringTake[mutatedSeq, {-5, 0} + res * 3],
             dnaReverse@StringTake[mutatedSeq, {-3, 0} + res * 3]
           ];
@@ -395,7 +395,7 @@ primerTests[homology_] :=
       "GC" -> primerGCTest@homology
     |>;
 
-(* These checks return True if the homology region passes the test *)
+(* These checks return True if the sequence passes the test *)
 (* Test for melting temperature *)
 primerMeltTest[seq_] :=
     dnaMeltingTemperature@seq > melt;
