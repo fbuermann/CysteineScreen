@@ -44,7 +44,7 @@ We will generate primers for mutating more than 400 individual coiled-coil resid
 
 ## Choosing target residues
 
-First, let’s construct a list of residue numbers that we want to mutate to cysteine. We will target residues in the Smc coiled-coil arm. The arm is an antiparallel intramolecular coiled coil, which means that it is comprised of an N-terminal and a C-terminal helix that follow the canonical heptad repeat pattern of coiled coils. We will mutagenize the residues that do not mediate a contact between the helices, i.e. they are not at the **a** and **d** positions of the heptad repeat.
+First, let’s construct a list of residue numbers that we want to mutate to cysteine. We will target residues in the Smc coiled-coil arm. The arm is an antiparallel intramolecular coiled coil, which means that it is comprised of an N-terminal and a C-terminal helix that follow the canonical heptad repeat pattern of coiled coils. We will mutagenize the residues that do not mediate a contact between the helices, i.e. which are not at the **a** and **d** positions of the heptad repeat.
 
 Let’s define a function that takes a residue range and a starting heptad position and writes out each residue together with its heptad position:
 
@@ -53,12 +53,15 @@ Let’s define a function that takes a residue range and a starting heptad posit
 ```mathematica
 heptadTable[start_, stop_, heptad_]:=
   With[
-    {hpos = FirstPosition[CharacterRange["a", "g"], heptad]}
+    {
+      residues = Range[start, stop],
+      hpos = FirstPosition[CharacterRange["a", "g"], heptad]
+    }
     ,
     Riffle[
-      Range[start, stop], 
-      RotateLeft[CharacterRange["a", "g"], hpos - 1],
-      {2, 2 * (stop - start + 1), 2}
+      residues,
+      RotateLeft[CharacterRange["a", "g"], hpos - 1], 
+      {2, 2 * Length@residues, 2}
      ]
        // Partition[#, 2]&
   ];
@@ -158,6 +161,8 @@ Export[
     , "Rules"
 ]
 ```
+
+[//]: # (No rules defined for Output)
 
 Open the file and have a look:
 
