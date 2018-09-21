@@ -72,6 +72,9 @@ dnaReverse[seq_String] :=
       }
     ];
 
+(* Check if DNA is palindromic *)
+palindromicQ[seq_] := ToLowerCase@seq === ToLowerCase@dnaReverse@seq;
+
 translationRules =
     {
       "UCA" -> "S",
@@ -338,9 +341,6 @@ makePrimerPair[
                 optimizeHomology[dnaReverse@cds, revHomology, maxTrim, maxExtend]
       |>
     ];
-
-(* Check if DNA is palindromic *)
-palindromicQ[seq_] := seq === dnaReverse@seq;
 
 (* Optimize primer homology by making it longer or shorter *)
 optimizeHomology[
