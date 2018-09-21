@@ -12,8 +12,8 @@ ClearAll["`*"];
 (* :Documentation: *)
 (***********************************************************************)
 makePrimerPair::usage =
-    "makePrimerPair[\"cds\", res, codon] gives PCR primers for\
- mutagenesis of a residue using a specified codon.";
+    "makePrimerPair[\"cds\", res, codon] gives PCR primers for the\
+ mutagenesis of a residue using a specified substitution codon.";
 
 (***********************************************************************)
 Begin["`Private`"];
@@ -195,7 +195,7 @@ dnaMeltingTemperature[
       dinucleotides2 =
           {"TT", "xx", "xx", "TG", "AC", "AG", "TC", "xx", "xx", "CC"};
 
-      (* Count dinucleotide instances. *)
+      (* Count di-nucleotide instances. *)
       dn =
           Map[
             StringCount[oligo, #, Overlaps -> True]&,
@@ -243,65 +243,89 @@ dnaMutateCDS[
 
 (* Construct primers for mutagenesis *)
 SyntaxInformation[makePrimerPair] =
-    {"ArgumentsPattern" -> {_, _, _, _., _.}};
+    {"ArgumentsPattern" -> {_, _, _, OptionsPattern[]}};
+
+makePrimerPair::palin = "Palindromic overhang `1`. Consider changing\
+ the substitution codon or setting the \"UpstreamSubstitutionRules\"\
+ option.";
+
+Options[makePrimerPair] =
+    {
+      "UpstreamSubstitutionRules" -> precedingCodons,
+      "MaxTrim" -> 3, (* Homology optimization parameter *)
+      "MaxExtend" -> 6(* Homology optimization parameter *)
+    };
+
 makePrimerPair[
   cds_String, (* Coding sequence *)
   res_Integer, (* Residue number to be mutated *)
   codon_String, (* Codon for substitution *)
-  maxTrim_Integer : 3, (* Homology optimization parameter *)
-  maxExtend_Integer : 6 (* Homology optimization parameter *)
+  opts : OptionsPattern[]
 ] :=
     Module[
       {
         precedingCodon, (* Codon in front of the mutation *)
-        precedingSubstitutionFlag, (* Flag for preceding codon *)
-        mutatedSeq,
+        precedingSubstitutionFlag, (* Preceding codon substituted? *)
+        mutatedCds,
         fwdHomology,
         fwdExtension,
+        overhang,
         revHomology,
-        revExtension
+        revExtension,
+        maxTrim = OptionValue["MaxTrim"],
+        maxExtend = OptionValue["MaxExtend"],
+        upstreamSubstRules = OptionValue["UpstreamSubstitutionRules"]
       }
       ,
       precedingCodon = StringTake[cds, {0, 2} + 3 * res - 5];
 
-      mutatedSeq =
+      mutatedCds =
           If[
             MemberQ[
               ToUpperCase@StringTake[precedingCodon, {-1}],
               {"G", "T"}
             ],
-          (* Use sequence as is *)
+            (* Use sequence as is *)
             precedingSubstitutionFlag = False;
             ToLowerCase@cds
             ,
-          (* Or make base in front of the mutation a G or T *)
+            (* Or make base in front of the mutation a G or T *)
             precedingSubstitutionFlag = True;
             dnaMutateCDS[
               ToLowerCase@cds,
               res - 1,
-              dnaTranslateCDS@precedingCodon /. precedingCodons
+              dnaTranslateCDS@precedingCodon /. upstreamSubstRules
             ]
-          ]
-          (* Do substitution *)
+          ](* Do substitution *)
               // dnaMutateCDS[#, res, ToUpperCase@codon]&;
+
+      overhang =
+          StringTake[mutatedCds, {0, 3} + 3 * res - 3];
+
+      (* Check if overhang is palindromic *)
+      If[
+        palindromicQ@overhang,
+        Message[makePrimerPair::palin, overhang]
+      ];
+
       fwdHomology =
-          StringTake[mutatedSeq, {1, 21} + res * 3];
+          StringTake[mutatedCds, {1, 21} + res * 3];
 
       revHomology =
           If[
             precedingSubstitutionFlag,
-            dnaReverse@StringTake[mutatedSeq, {-26, -6} + res * 3],
-            dnaReverse@StringTake[mutatedSeq, {-23, -3} + res * 3]
+            dnaReverse@StringTake[mutatedCds, {-26, -6} + res * 3],
+            dnaReverse@StringTake[mutatedCds, {-23, -3} + res * 3]
           ];
 
       fwdExtension =
-          StringTake[mutatedSeq, {-3, 0} + res * 3];
+          StringTake[mutatedCds, {-3, 0} + res * 3];
 
       revExtension =
           If[
             precedingSubstitutionFlag,
-            dnaReverse@StringTake[mutatedSeq, {-5, 0} + res * 3],
-            dnaReverse@StringTake[mutatedSeq, {-3, 0} + res * 3]
+            dnaReverse@StringTake[mutatedCds, {-5, 0} + res * 3],
+            dnaReverse@StringTake[mutatedCds, {-3, 0} + res * 3]
           ];
 
       (* Results *)
@@ -314,6 +338,9 @@ makePrimerPair[
                 optimizeHomology[dnaReverse@cds, revHomology, maxTrim, maxExtend]
       |>
     ];
+
+(* Check if DNA is palindromic *)
+palindromicQ[seq_] := seq === dnaReverse@seq;
 
 (* Optimize primer homology by making it longer or shorter *)
 optimizeHomology[
@@ -329,8 +356,8 @@ optimizeHomology[
         testResults
       },
 
-    (* Scan the test suite over the variants, throwing the first
-    good primer *)
+      (* Scan the test suite over the variants, throwing the first
+      good primer *)
 
       testResults =
           With[{tests = primerTests@#},

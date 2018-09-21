@@ -17,7 +17,10 @@ primers for mutating hundreds of residues in the ",
  " to cysteine. Most of the code resides in the accompanying ",
  StyleBox["CysteineScreen",
   FontWeight->"Bold"],
- " Wolfram Language package."
+ " Wolfram Language package which exposes a single function: ",
+ StyleBox["makePrimerPair",
+  FontWeight->"Bold"],
+ "."
 }], "Text",ExpressionUUID->"f8deda4a-1ffe-4375-97a5-ba181e0202da"],
 
 Cell[CellGroupData[{
@@ -49,8 +52,8 @@ Cell[TextData[{
 Cell[BoxData[
  RowBox[{"PacletInstall", "[", "\"\<please/enter/path/to/.paclet\>\"", 
   "]"}]], "Code",
- InitializationCell->
-  False,ExpressionUUID->"598b9ddd-0aa9-48b7-8b87-5fa709d2a27a"],
+ InitializationCell->False,
+ CellLabel->"In[2]:=",ExpressionUUID->"598b9ddd-0aa9-48b7-8b87-5fa709d2a27a"],
 
 Cell["Now load the package:", \
 "Text",ExpressionUUID->"8133491d-2a50-4937-947d-83eaaf23e9b6"],
@@ -58,7 +61,7 @@ Cell["Now load the package:", \
 Cell[BoxData[
  RowBox[{"<<", " ", "CysteineScreen`"}]], "Code",
  InitializationCell->False,
- CellLabel->"In[1]:=",ExpressionUUID->"f47db6ac-22b0-4e6e-a903-316c9d2a1354"],
+ CellLabel->"In[16]:=",ExpressionUUID->"f47db6ac-22b0-4e6e-a903-316c9d2a1354"],
 
 Cell["The package exposes a single function:", \
 "Text",ExpressionUUID->"104737c9-3ee2-4fe7-9b24-4f899dcc520b"],
@@ -68,14 +71,14 @@ Cell[CellGroupData[{
 Cell[BoxData[
  RowBox[{"?", " ", "\"\<CysteineScreen`*\>\""}]], "Code",
  InitializationCell->False,
- CellLabel->"In[2]:=",ExpressionUUID->"fbf97999-6e4c-4231-aa43-a79f276e923a"],
+ CellLabel->"In[17]:=",ExpressionUUID->"fbf97999-6e4c-4231-aa43-a79f276e923a"],
 
 Cell[BoxData["\<\"makePrimerPair[\\\"cds\\\", res, codon] gives PCR primers \
-for mutagenesis of a residue using a specified codon.\"\>"], "Print", \
-"PrintUsage",
+for the mutagenesis of a residue using a specified substitution codon.\"\>"], \
+"Print", "PrintUsage",
  CellTags->
-  "Info23744056536-9777638",ExpressionUUID->"1d87ac9a-fa89-40d1-ba6e-\
-541b15d7d368"]
+  "Info173746543975-1585696",ExpressionUUID->"c10a01db-dc3d-4f58-9e3a-\
+00691170d692"]
 }, Open  ]]
 }, Open  ]],
 
@@ -103,6 +106,9 @@ assembly using ",
  "I overhangs contain the cysteine mutation and are constrained to GTGC or \
 TTGC to reduce variations in ligation efficiency.  For some positions, this \
 requires recoding of the codon upstream of the mutation. The ",
+ StyleBox["makePrimerPair",
+  FontWeight->"Bold"],
+ " function from the ",
  StyleBox["CysteineScreen",
   FontWeight->"Bold"],
  " package will take care of this. The two constant primers are used to clone \
@@ -176,13 +182,16 @@ Cell[BoxData[
        RowBox[{"Partition", "[", 
         RowBox[{"#", ",", " ", "2"}], "]"}], "&"}]}]}], "\[IndentingNewLine]",
      "  ", "]"}]}], ";"}]], "Code",
- InitializationCell->
-  False,ExpressionUUID->"2d74fa04-0de2-45e0-8497-2b43e8c3d9a8"],
+ InitializationCell->False,
+ CellLabel->"In[5]:=",ExpressionUUID->"2d74fa04-0de2-45e0-8497-2b43e8c3d9a8"],
 
-Cell["\<\
-We use this function and knowledge about the coiled-coil register to assign \
-heptad positions to Smc residues:\
-\>", "Text",ExpressionUUID->"04af74a5-a05d-4182-9071-3f95dc90d2df"],
+Cell[TextData[{
+ "We use this function and knowledge about the coiled-coil register (see \
+Waldman ",
+ StyleBox["et al.",
+  FontSlant->"Italic"],
+ ", 2015) to assign heptad positions to Smc residues:"
+}], "Text",ExpressionUUID->"04af74a5-a05d-4182-9071-3f95dc90d2df"],
 
 Cell[BoxData[
  RowBox[{
@@ -207,8 +216,8 @@ Cell[BoxData[
      RowBox[{"heptadTable", "[", 
       RowBox[{"990", ",", " ", "1025", ",", " ", "\"\<d\>\""}], "]"}]}], 
     "\[IndentingNewLine]", "  ", "]"}]}], ";"}]], "Code",
- InitializationCell->
-  False,ExpressionUUID->"a1edc7d7-4723-42bc-afcc-aa40e57a9e5a"],
+ InitializationCell->False,
+ CellLabel->"In[6]:=",ExpressionUUID->"a1edc7d7-4723-42bc-afcc-aa40e57a9e5a"],
 
 Cell[TextData[{
  "Now we use pattern matching to select residues that are not at positions ",
@@ -236,7 +245,7 @@ Cell[BoxData[
         RowBox[{"res_Integer", ",", " ", "_"}], "}"}], " ", ":>", " ", 
        "res"}]}], "}"}]}]}], ";"}]], "Code",
  InitializationCell->False,
- CellLabel->"In[5]:=",ExpressionUUID->"785b3229-cf24-49a8-a2d0-2b6e87e97e41"]
+ CellLabel->"In[7]:=",ExpressionUUID->"785b3229-cf24-49a8-a2d0-2b6e87e97e41"]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -311,7 +320,7 @@ Cell[BoxData[
         "\"\<ExampleData\>\"", ",", " ", "\"\<BsSmc_cysless.txt\>\""}], "}"}],
        "]"}], ",", " ", "\"\<Text\>\""}], "]"}]}], ";"}]], "Code",
  InitializationCell->False,
- CellLabel->"In[6]:=",ExpressionUUID->"3c267b9b-e795-45e5-8f95-b33c6e8d6a48"],
+ CellLabel->"In[8]:=",ExpressionUUID->"3c267b9b-e795-45e5-8f95-b33c6e8d6a48"],
 
 Cell["Now we construct primers for the target residues:", \
 "Text",ExpressionUUID->"464f8467-7690-4439-b579-dea228d35d92"],
@@ -325,7 +334,7 @@ Cell[BoxData[
       RowBox[{"smc", ",", " ", "#", ",", " ", "\"\<TGC\>\""}], "]"}], "&"}], 
     " ", "/@", " ", "targets"}]}], ";"}]], "Code",
  InitializationCell->False,
- CellLabel->"In[7]:=",ExpressionUUID->"289c0148-2623-485a-b017-bcdf565025b1"],
+ CellLabel->"In[9]:=",ExpressionUUID->"289c0148-2623-485a-b017-bcdf565025b1"],
 
 Cell[TextData[{
  "The primers are still missing the ",
@@ -358,7 +367,7 @@ Cell[BoxData[{
       RowBox[{"All", ",", " ", "\"\<Rev\>\""}], "]"}], "]"}]}]}], 
   ";"}]}], "Code",
  InitializationCell->False,
- CellLabel->"In[8]:=",ExpressionUUID->"ab86683a-298b-4c6d-bf57-59d1439dd20f"]
+ CellLabel->"In[10]:=",ExpressionUUID->"ab86683a-298b-4c6d-bf57-59d1439dd20f"]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -389,11 +398,13 @@ Cell[BoxData[{
        RowBox[{"ToString", "@", "#"}]}], "]"}], "&"}], " ", "/@", " ", 
     "targets"}]}], ";"}]}], "Code",
  InitializationCell->False,
- CellLabel->"In[10]:=",ExpressionUUID->"1fb38689-4b7c-4e5e-9490-18f34ef7aad5"],
+ CellLabel->"In[12]:=",ExpressionUUID->"1fb38689-4b7c-4e5e-9490-18f34ef7aad5"],
 
 Cell["\<\
 Construct a table of name/sequence pairs and export as a spreadsheet:\
 \>", "Text",ExpressionUUID->"8d6ba3f6-40a2-46db-859e-920308184471"],
+
+Cell[CellGroupData[{
 
 Cell[BoxData[
  RowBox[{"Export", "[", "\[IndentingNewLine]", "  ", 
@@ -418,18 +429,23 @@ Cell[BoxData[
      "\[IndentingNewLine]", "    ", "}"}]}], "\[IndentingNewLine]", "    ", 
    ",", " ", "\"\<Rules\>\""}], "\[IndentingNewLine]", "]"}]], "Code",
  InitializationCell->False,
- CellLabel->"In[12]:=",ExpressionUUID->"c6ec53a4-de86-4256-8302-fbeacf1fd9a1"],
+ CellLabel->"In[14]:=",ExpressionUUID->"c6ec53a4-de86-4256-8302-fbeacf1fd9a1"],
+
+Cell[BoxData["\<\"C:\\\\Users\\\\Frank\\\\CysteineScreenPrimers.xlsx\"\>"], \
+"Output",
+ CellLabel->"Out[14]=",ExpressionUUID->"e6a8ab17-ce5c-4626-9f83-2eafc1615ff6"]
+}, Open  ]],
 
 Cell["Open the file and have a look:", \
 "Text",ExpressionUUID->"85a44301-f0d6-4f7b-b0e5-ff05580718a9"],
 
 Cell[BoxData[
  RowBox[{"SystemOpen", "@", "%"}]], "Input",
- CellLabel->"In[13]:=",ExpressionUUID->"85c4a077-b3df-4abc-bd6a-d345927fd7f6"]
+ CellLabel->"In[15]:=",ExpressionUUID->"85c4a077-b3df-4abc-bd6a-d345927fd7f6"]
 }, Open  ]]
 }, Open  ]]
 },
-WindowSize->{1055, 1102},
+WindowSize->{1055, 661},
 WindowMargins->{{20, Automatic}, {Automatic, 74}},
 PrivateNotebookOptions->{"FileOutlineCache"->False},
 TrackCellChangeTimes->False,
