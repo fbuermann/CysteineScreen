@@ -1,10 +1,12 @@
-# Tutorial: Primer design for high-throughput cysteine mutagenesis
+# CysteineScreen Package
 
-High-throughput mutagenesis is a very useful tool for setting up cysteine cross-linking screens. This tutorial shows how to automatically design primers for mutating hundreds of residues in the *smc* gene of *B. subtilis* to cysteine. Most of the code resides in the accompanying **CysteineScreen** Wolfram Language package which exposes a single function: **makePrimerPair**.
+[//]: # (No rules defined for Chapter)
+
+High-throughput mutagenesis is a very useful tool for setting up cysteine cross-linking screens. This tutorial shows how to automatically design primers for mutating hundreds of residues in the *smc* gene of *B. subtilis* to cysteine. Most of the code resides in the accompanying **CysteineScreen** Wolfram Language package which exposes the function **makePrimerPair**.
 
 ## Package installation
 
-Make sure that the package folder containing this notebook has been placed in the directory opened by
+Make sure that the package folder has been placed in the directory opened by
 
 
 
@@ -20,6 +22,8 @@ Alternatively, you can download the .paclet file from the **CysteineScreen** rel
 PacletInstall["please/enter/path/to/.paclet"]
 ```
 
+Once the package is installed, this tutorial notebook can be accessed from the “Add-Ons and Packages” section in the Documentation Center or by entering “CysteineScreen” into the documentation search box.
+
 Now load the package:
 
 
@@ -28,12 +32,12 @@ Now load the package:
 << CysteineScreen`
 ```
 
-The package exposes a single function:
+The package exposes the function **makePrimerPair**:
 
 
 
 ```mathematica
-? "CysteineScreen`*"
+? makePrimerPair
 ```
 
 [//]: # (No rules defined for Print)
@@ -161,8 +165,6 @@ Export[
     , "Rules"
 ]
 ```
-
-[//]: # (No rules defined for Output)
 
 Open the file and have a look:
 

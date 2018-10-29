@@ -1,3 +1,5 @@
+Package["CysteineScreen`"]
+
 (* Mathematica Package *)
 (* Created by Mathematica Plugin for IntelliJ IDEA *)
 
@@ -5,18 +7,13 @@
 (* :Context: CysteineScreen` *)
 (* :Author: Frank Buermann <fburmann@mrc-lmb.cam.ac.uk> *)
 
-BeginPackage["CysteineScreen`"];
-ClearAll["`*"];
-
 (***********************************************************************)
 (* :Documentation: *)
 (***********************************************************************)
+PackageExport["makePrimerPair"]
 makePrimerPair::usage =
     "makePrimerPair[\"cds\", res, codon] gives PCR primers for the\
  mutagenesis of a residue using a specified substitution codon.";
-
-(***********************************************************************)
-Begin["`Private`"];
 
 (***********************************************************************)
 (**** Configuration ****)
@@ -413,6 +410,7 @@ homologyVariants[template_, homology_, maxTrim_, maxExtend_] :=
     ];
 
 (* Primer test suite *)
+(* The functions return True if the sequence passes the test *)
 primerTests[homology_] :=
     <|
       "Melt" -> primerMeltTest@homology,
@@ -422,7 +420,6 @@ primerTests[homology_] :=
       "GC" -> primerGCTest@homology
     |>;
 
-(* These checks return True if the sequence passes the test *)
 (* Test for melting temperature *)
 primerMeltTest[seq_] :=
     dnaMeltingTemperature@seq > melt;
@@ -435,7 +432,7 @@ primerClampTest[seq_] :=
 primerSelfComplementTest[seq_] :=
     Nor @@ Table[
       With[{s = StringTake[seq, -i]},
-        ToUpperCase@s === ToUpperCase@dnaReverse@s
+        palindromicQ@s
       ],
       {i, 4, 17}
     ];
@@ -449,6 +446,3 @@ primerGCTest[seq_] :=
     MemberQ[Characters@ToUpperCase@StringTake[seq, -4], "G" | "C"];
 
 (***********************************************************************)
-End[]; (* `Private` *)
-
-EndPackage[];
