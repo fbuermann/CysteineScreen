@@ -10,10 +10,22 @@ Package["CysteineScreen`"]
 (***********************************************************************)
 (* :Documentation: *)
 (***********************************************************************)
-PackageExport["makePrimerPair"]
-makePrimerPair::usage =
-    "makePrimerPair[\"cds\", res, codon] gives PCR primers for the\
- mutagenesis of a residue using a specified substitution codon.";
+PackageExport["makeSingleSitePrimers"]
+Unprotect[makeSingleSitePrimers];
+makeSingleSitePrimers::usage =
+    "makeSingleSitePrimers[\"cds\", res, \"codon\"] gives PCR primers\
+ for the mutagenesis of a residue using a specified substitution codon.";
+
+PackageExport["makeMultiSitePrimers"]
+Unprotect[makeMultiSitePrimers];
+makeMultiSitePrimers::usage =
+    "makeMultiSitePrimers[\"cds\", {res1, \"codon\"}, {res2, \"codon\"},\
+ ...]\ generates a primer set for multiple site-directed mutagenesis.
+makeMultiSitePrimers[\"cds\", {{res, \"codon\"}, ...}] generates a set\
+ of mutagenesis primers sharing a common reverse primer.
+makeMultiSitePrimers[\"cds\", {{res1, \"codon\"}, ...}, {{resn,\
+ \"codon\"}, ...}, ...] generates primer sets for multiple sites with\
+ compatible overhangs.";
 
 (***********************************************************************)
 (**** Configuration ****)
@@ -242,24 +254,26 @@ dnaMutateCDS[
 (**** Primer construction ****)
 
 (* Construct primers for mutagenesis *)
-SyntaxInformation[makePrimerPair] =
+SyntaxInformation[makeSingleSitePrimers] =
     {"ArgumentsPattern" -> {_, _, _, OptionsPattern[]}};
 
-makePrimerPair::palin = "Palindromic overhang `1`. Consider changing\
+makeSingleSitePrimers::palin = "Palindromic overhang `1`. Consider changing\
  the substitution codon or setting the \"UpstreamSubstitutionRules\"\
  option.";
 
-Options[makePrimerPair] =
-    {
+Options[makeSingleSitePrimers] =
+    SortBy[First]@{
+      "AdjustUpstreamCodon" -> True,
       "UpstreamSubstitutionRules" -> precedingCodons,
       "MaxTrim" -> 3, (* Homology optimization parameter *)
       "MaxExtend" -> 6(* Homology optimization parameter *)
     };
 
-makePrimerPair[
+makeSingleSitePrimers[
   cds_String, (* Coding sequence *)
   res_Integer, (* Residue number to be mutated *)
   codon_String, (* Codon for substitution *)
+  op : (_Integer | Automatic) : Automatic, (* Overhang position *)
   opts : OptionsPattern[]
 ] :=
     Module[
@@ -270,6 +284,9 @@ makePrimerPair[
         fwdHomology,
         fwdExtension,
         overhang,
+        overhangPos =
+            If[op === Automatic, res * 3 - 3, op],
+        extensionRegion,
         revHomology,
         revExtension,
         maxTrim = OptionValue["MaxTrim"],
@@ -281,10 +298,14 @@ makePrimerPair[
 
       mutatedCds =
           If[
-            MemberQ[
-              ToUpperCase@StringTake[precedingCodon, {-1}],
-              {"G", "T"}
-            ],
+            IntegerQ@op
+                ||
+                Not@OptionValue["AdjustUpstreamCodon"]
+                ||
+                MemberQ[
+                  ToUpperCase@StringTake[precedingCodon, {-1}],
+                  {"G", "T"}
+                ],
             (* Use sequence as is *)
             precedingSubstitutionFlag = False;
             ToLowerCase@cds
@@ -300,33 +321,42 @@ makePrimerPair[
               // dnaMutateCDS[#, res, ToUpperCase@codon]&;
 
       overhang =
-          StringTake[mutatedCds, {0, 3} + 3 * res - 3];
+          StringTake[mutatedCds, {0, 3} + overhangPos];
 
       (* Check if overhang is palindromic *)
       If[
         palindromicQ@overhang,
-        Message[makePrimerPair::palin, overhang]
+        Message[makeSingleSitePrimers::palin, overhang]
       ];
 
+      (* Find the minimal region containing overhang and mutation *)
+      extensionRegion =
+          MinMax[
+            {
+              (* First base of the overhang and and upstream substitution *)
+              overhangPos - 2 * Boole@precedingSubstitutionFlag,
+              overhangPos + 3, (* Last base of the overhang *)
+              res * 3 - 2, (* First base of the mutant codon *)
+              res * 3 (* Last base of the mutant codon *)
+            }
+          ];
+
       fwdHomology =
-          StringTake[mutatedCds, {1, 21} + res * 3];
+          StringTake[mutatedCds, {1, 21} + extensionRegion[[2]]];
 
       revHomology =
-          If[
-            precedingSubstitutionFlag,
-            dnaReverse@StringTake[mutatedCds, {-26, -6} + res * 3],
-            dnaReverse@StringTake[mutatedCds, {-23, -3} + res * 3]
-          ];
+          dnaReverse@
+              StringTake[mutatedCds, {-21, -1} + extensionRegion[[1]]];
 
       fwdExtension =
-          StringTake[mutatedCds, {-3, 0} + res * 3];
+          StringTake[mutatedCds, {overhangPos, extensionRegion[[2]]}];
 
       revExtension =
-          If[
-            precedingSubstitutionFlag,
-            dnaReverse@StringTake[mutatedCds, {-5, 0} + res * 3],
-            dnaReverse@StringTake[mutatedCds, {-3, 0} + res * 3]
-          ];
+          dnaReverse@
+              StringTake[
+                mutatedCds,
+                {extensionRegion[[1]], overhangPos + 3}
+              ];
 
       (* Results *)
       <|
@@ -338,6 +368,8 @@ makePrimerPair[
                 optimizeHomology[dnaReverse@cds, revHomology, maxTrim, maxExtend]
       |>
     ];
+
+Protect[makeSingleSitePrimers];
 
 (* Optimize primer homology by making it longer or shorter *)
 optimizeHomology[
@@ -444,5 +476,320 @@ primerTerminalTTest[seq_] :=
 (* Test for presence of G/C in the 3' region *)
 primerGCTest[seq_] :=
     MemberQ[Characters@ToUpperCase@StringTake[seq, -4], "G" | "C"];
+
+
+(***********************************************************************)
+(**** Multiple site-directed mutagenesis ****)
+
+(* End ligation fidelity table *)
+fidelityTable = Get["CysteineScreen`FidelityTable_37deg`"];
+
+(* Function for making a lookup table for ligation efficiency
+and failure fraction *)
+makeFidelityLookupTable[fidelityTable_] :=
+    Module[
+      {
+        m = fidelityTable["LigationMatrix"],
+        scores, failureFraction
+      },
+      scores = Rescale[Diagonal@m, MinMax@Diagonal@m];
+      failureFraction =
+          Total[m * UnitStep@DiagonalMatrix@Table[-1, Length@m]]
+              / Total[m];
+
+      (* Make <|"AAAA" -> <|"EfficiencyScore" -> 0, "FailureFraction" -> 0.4|>, ... |> association *)
+      AssociationThread[
+        fidelityTable["ColumnLabels"] ->
+            (
+              AssociationThread[
+                {"EfficiencyScore", "FailureFraction"} -> #
+              ]&
+                  /@ N@Transpose[{scores, failureFraction}]
+            )
+      ]
+    ];
+
+(* Function for making a table of cross-reactivity
+ (ratio between off-target reactivity and on-target reactivity) *)
+makeCrossReactivityLookupTable[fidelityTable_] :=
+    AssociationThread[
+      fidelityTable["RowLabels"] ->
+          (
+            AssociationThread[
+              fidelityTable["ColumnLabels"] -> Rescale@#
+            ]& /@ N@fidelityTable["LigationMatrix"]
+          )
+    ];
+
+(* Filter function for defining the ends of a overhang search interval *)
+designFilter["Forward", minmax_, dist_] :=
+    First@minmax - 4 - dist <= # < First@minmax &;
+
+designFilter["Reverse", minmax_, dist_] :=
+    Last@minmax < # <= Last@minmax + 4 + dist &;
+
+designFilter["Mixed", minmax_, dist_] :=
+    First@minmax - 4 - dist <= # <= Last@minmax + 4 + dist &;
+
+(* Generate a sorted list of all possible overhangs *)
+Options[proposeOverhangs] =
+    SortBy[First]@{
+      "OverhangSearchDistance" -> 2,
+      "Design" -> "Forward"
+    };
+
+proposeOverhangs[
+  cds_,
+  sites_, (* Positions of first base of targeted codons *)
+  opts : OptionsPattern[]
+] :=
+    Module[
+      {
+        cdsUpperCase = ToUpperCase@cds,
+        forbidden, (* Sites that cannot be part of an overhang *)
+        allowed (* Sites that can be part of an overhang *)
+      },
+
+      forbidden =
+          Union[
+            Flatten[Range[#, # + 2]& /@ sites]
+          ];
+
+      allowed =
+          Select[
+            Complement[ (* Discard sites that will be targeted by mutagenesis *)
+              Range[StringLength@cds],
+              forbidden
+            ],
+            designFilter[ (* Trim allowed region as specified by the "Design" option *)
+              OptionValue["Design"],
+              MinMax@forbidden,
+              OptionValue["OverhangSearchDistance"]
+            ]
+          ];
+
+      (* Generate a list of {site, overhang} pairs *)
+      If[
+        Abs@*Subtract @@ MinMax@# == 3, (* Check for disruption by forbidden regions *)
+        {First@#, StringTake[cdsUpperCase, MinMax@#]},
+        Nothing
+      ]&
+          /@ Partition[allowed, 4, 1]
+    ];
+
+(* Check if a set of overhangs is ok *)
+overhangValidatorF[
+  crossReactivityTable_,
+  maxCrossReactivity_
+][overhangs__] :=
+    With[
+      {
+        (* If there is only one site, only check for palindromes *)
+        (* If there are more sites, check cross-reactivity as well *)
+        validQ =
+            If[
+              Length@{overhangs} <= 1,
+              Not@palindromicQ@#2&, (* Only one site *)
+              ( (* More than one site *)
+                Not@palindromicQ@Last@#1 && Not@palindromicQ@Last@#2
+                    &&
+                    crossReactivityTable[[Last@#1, dnaReverse@Last@#2]]
+                        <= maxCrossReactivity
+              )&
+            ]
+      },
+      (* Do the checking *)
+      Apply[
+        And,
+        validQ @@@
+            If[
+              Length@{overhangs} > 1,
+              Subsets[{overhangs}, {2}], (* Check all pairwise combinations *)
+              {overhangs} (* Check only one site *)
+            ]
+      ]
+    ];
+
+(* From sets of candidate overhangs, choose a good one *)
+Options[chooseOverhangSet] =
+    SortBy[First]@{
+      "CrossReactivityThreshold" -> 0.05,
+      "MinimumEfficiency" -> 0
+    };
+
+chooseOverhangSet[
+  candidateGroups_,
+  fidelityTable_,
+  opts : OptionsPattern[]
+] :=
+    Module[
+      {
+        fidelityLookupTable =
+            makeFidelityLookupTable@fidelityTable,
+        crossReactivityLookupTable =
+            makeCrossReactivityLookupTable@fidelityTable,
+        scoringFunction,
+        selectorFunction,
+        sortedOverhangs,
+        found = False,
+        result
+      },
+
+      (* Function for scoring by normalized ligation efficiency *)
+      scoringFunction =
+          With[
+            {
+              (* For normalization *)
+              maxEfficiency =
+                  Max@fidelityLookupTable[[All, "EfficiencyScore"]]
+            },
+            (* Normalized efficiency *)
+            #EfficiencyScore / maxEfficiency &
+          ];
+
+      (* Function for selecting by minimum ligation efficiency *)
+      selectorFunction =
+          With[
+            {
+              maxEfficiency =
+                  Max@fidelityLookupTable[[All, "EfficiencyScore"]]
+            },
+            #EfficiencyScore / maxEfficiency
+                >= OptionValue["MinimumEfficiency"]&
+          ];
+
+      (* Sort overhangs and drop inefficient ones *)
+      sortedOverhangs =
+          Reverse@*SortBy[
+            scoringFunction@fidelityLookupTable@ToUpperCase@Last@#&
+          ]
+              @*Select[
+            selectorFunction@fidelityLookupTable@ToUpperCase@Last@#&
+          ]
+              /@ candidateGroups;
+
+      (* Look at all combinations of overhangs between the groups and
+      return the first good set *)
+      result =
+          Catch@
+              Outer[
+                If[
+                  overhangValidatorF[
+                    crossReactivityLookupTable,
+                    OptionValue["CrossReactivityThreshold"]
+                  ]@##,
+                  found = True; Throw[List@##]
+                ]&,
+                Sequence @@ sortedOverhangs,
+                1 (* Level *)
+              ];
+
+      If[found, result, {}]
+    ];
+
+(* Top level function for multiple site-directed mutagenesis *)
+SyntaxInformation[makeMultiSitePrimers] =
+    {"ArgumentsPattern" -> {_, __, OptionsPattern[]}};
+
+makeMultiSitePrimers::noovh =
+    "No suitable overhangs found. Try adjusting the\
+ \"OverhangSearchDistance\" option.";
+
+Options[makeMultiSitePrimers] =
+    DeleteDuplicates@
+        Join[
+          {
+            "OverhangSearchDistance" -> 2, (* Maximum distance between overhang and outermost mutation *)
+            "Design" -> "Forward",
+            "OverhangFidelityTable" -> Automatic,
+            "CrossReactivityThreshold" -> 0.05,
+            "MinimumEfficiency" -> 0
+          },
+          Options[makeSingleSitePrimers]
+        ];
+
+makeMultiSitePrimers[
+  cds_String,
+  mutations : {_Integer, _String}..,
+  opts : OptionsPattern[]
+] :=
+    Flatten@makeMultiSitePrimers[cds, Sequence @@ (List /@ {mutations}), opts];
+
+makeMultiSitePrimers[
+  cds_String,
+  groups : {{_Integer, _String}..}..,
+  opts : OptionsPattern[]
+] :=
+    Module[
+      {
+        targetSiteGroups = {groups}[[All, All, 1]] * 3 - 2, (* First base positions of target codons *)
+        overhangCandidateGroups,
+        fidelity =
+            If[
+              OptionValue["OverhangFidelityTable"] === Automatic,
+              fidelityTable,
+              OptionValue["OverhangFidelityTable"]
+            ],
+        overhangs,
+        tasks
+      },
+
+      (* Propose possible overhangs for each group *)
+      overhangCandidateGroups =
+          proposeOverhangs[
+            cds, #,
+            FilterRules[
+              {opts, Options[makeMultiSitePrimers]},
+              Options@proposeOverhangs
+            ]
+          ]& /@ targetSiteGroups;
+
+      (* Check if there are groups with no candidates *)
+      If[
+        MemberQ[overhangCandidateGroups, {}],
+        Message[makeMultiSitePrimers::noovh];
+        Return[$Failed]
+      ];
+
+      (* Choose one overhang per group *)
+      overhangs =
+          chooseOverhangSet[
+            overhangCandidateGroups,
+            fidelity,
+            FilterRules[
+              {opts, Options["makePrimerSets"]},
+              Options[chooseOverhangSet]
+            ]
+          ];
+
+      (* Check if the search failed *)
+      If[
+        overhangs === {},
+        Message[makeMultiSitePrimers::noovh];
+        Return[$Failed]
+      ];
+
+      (* Pair overhangs with mutations *)
+      tasks =
+          <|"CDS" -> cds, "Overhang" -> #1, "Mutations" -> #2|>&
+              @@@ Transpose[{overhangs, {groups}}];
+
+      (* Construct primer pairs for each mutation *)
+      Map[
+        With[
+          {seq = #CDS, op = #Overhang[[1]]},
+          makeSingleSitePrimers[
+            seq, #[[1]], #[[2]], op,
+            FilterRules[
+              {opts, Options[makeMultiSitePrimers]},
+              Options[makeSingleSitePrimers]
+            ]
+          ]& /@ #Mutations
+        ]&,
+        tasks
+      ]
+    ];
+
+Protect[makeMultiSitePrimers];
 
 (***********************************************************************)
